@@ -421,12 +421,17 @@
     .results-copy { margin-bottom: 23px; color: var(--muted); }
 
     .final-score {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
       margin: 0 auto 25px;
       padding: 15px;
       border: 1px solid var(--line);
       border-radius: 15px;
       background: var(--surface-soft);
     }
+
+    .final-score > div { min-width: 0; }
 
     .final-score strong {
       display: block;
@@ -532,7 +537,10 @@
         <p class="topic">ミッション完了</p>
         <h1 id="result-title">宇宙が待っています！</h1>
         <p class="results-copy" id="result-copy"></p>
-        <div class="final-score"><strong id="final-score">0/10</strong><span>正解数</span></div>
+        <div class="final-score">
+          <div><strong id="final-score">0/10</strong><span>今回の得点</span></div>
+          <div><strong id="personal-best-score">0/10</strong><span>自己ベスト</span></div>
+        </div>
         <button class="primary" id="restart-button" type="button">もう一度挑戦 <span aria-hidden="true">↻</span></button>
         <section class="review" id="review-section" aria-labelledby="review-title" hidden>
           <h2 id="review-title">間違えた問題の振り返り</h2>
@@ -556,6 +564,7 @@
       { question: "自転軸が横倒しになっていることで知られる惑星は？", answers: ["天王星", "火星", "金星", "水星"], correct: 0, fact: "天王星の自転軸は約98度傾いています。昔、巨大な天体が衝突したためと考えられています。" },
       { question: "1990年に打ち上げられたNASAの宇宙望遠鏡は？", answers: ["ケプラー宇宙望遠鏡", "チャンドラX線望遠鏡", "スピッツァー宇宙望遠鏡", "ハッブル宇宙望遠鏡"], correct: 3, fact: "ハッブル宇宙望遠鏡は、何十年にもわたって宇宙の見方を大きく変えてきました。" }
     ];
+    const personalBestStorageKey = "space-quiz-personal-best";
 
     function shuffleQuestions() {
       const shuffled = [...questions];
@@ -584,6 +593,21 @@
     let score = 0;
     let answered = false;
     let incorrectAnswers = [];
+    let personalBestScore = 0;
+    let personalBestPersistenceFailed = false;
+
+    try {
+      const savedPersonalBest = localStorage.getItem(personalBestStorageKey);
+      let parsedPersonalBest = 0;
+      if (savedPersonalBest !== null) {
+        parsedPersonalBest = savedPersonalBest.trim() === "" ? NaN : Number(savedPersonalBest);
+      }
+      if (Number.isInteger(parsedPersonalBest) && parsedPersonalBest >= 0 && parsedPersonalBest <= questions.length) {
+        personalBestScore = parsedPersonalBest;
+      }
+    } catch {
+      personalBestPersistenceFailed = true;
+    }
 
     function renderQuestion() {
       const item = questionOrder[currentQuestion];
@@ -643,6 +667,16 @@
     }
 
     function showResults() {
+      if (score > personalBestScore) {
+        personalBestScore = score;
+        try {
+          localStorage.setItem(personalBestStorageKey, String(personalBestScore));
+          personalBestPersistenceFailed = false;
+        } catch {
+          personalBestPersistenceFailed = true;
+        }
+      }
+
       const percentage = score / questions.length;
       const reaction = percentage === 1 ? "🏆" : percentage >= 0.7 ? "🚀" : percentage >= 0.4 ? "🌟" : "🪐";
       const title = percentage === 1 ? "宇宙レベルの満点！" : percentage >= 0.7 ? "すばらしい探検！" : percentage >= 0.4 ? "いいスタート！" : "空を見上げて、また挑戦！";
@@ -651,7 +685,8 @@
       document.querySelector("#result-copy").textContent = score === 10
         ? "全問正解！宇宙のことなら何でも知っていますね。"
         : `全10問中${score}問正解。宇宙探検は、ひとつの疑問から始まります。`;
-      document.querySelector("#final-score").textContent = `${score}/10`;
+      document.querySelector("#final-score").textContent = `${score}/${questions.length}`;
+      document.querySelector("#personal-best-score").textContent = `${personalBestScore}/${questions.length}`;
       reviewList.replaceChildren();
       incorrectAnswers.forEach(answer => {
         const item = document.createElement("li");
@@ -676,9 +711,14 @@
       reviewSection.hidden = incorrectAnswers.length === 0;
       quizScreen.hidden = true;
       resultsScreen.hidden = false;
-      resultsAnnouncement.textContent = incorrectAnswers.length === 0
+      const resultAnnouncement = incorrectAnswers.length === 0
         ? `全問正解です。全${questions.length}問正解しました。`
         : `クイズ終了。全${questions.length}問中${score}問正解、間違えた問題は${incorrectAnswers.length}問です。`;
+      const personalBestAnnouncement = `自己ベストは${personalBestScore}点です。`;
+      const persistenceWarning = personalBestPersistenceFailed
+        ? " 自己ベストをこのブラウザーに保存できませんでした。"
+        : "";
+      resultsAnnouncement.textContent = `${resultAnnouncement} ${personalBestAnnouncement}${persistenceWarning}`;
       document.querySelector("#restart-button").focus();
     }
 
