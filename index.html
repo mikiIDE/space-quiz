@@ -596,18 +596,26 @@
     let personalBestScore = 0;
     let personalBestPersistenceFailed = false;
 
-    try {
-      const savedPersonalBest = localStorage.getItem(personalBestStorageKey);
-      let parsedPersonalBest = 0;
-      if (savedPersonalBest !== null) {
-        parsedPersonalBest = savedPersonalBest.trim() === "" ? NaN : Number(savedPersonalBest);
+    function readStoredPersonalBest() {
+      try {
+        const savedPersonalBest = localStorage.getItem(personalBestStorageKey);
+        let parsedPersonalBest = 0;
+        if (savedPersonalBest !== null) {
+          parsedPersonalBest = savedPersonalBest.trim() === "" ? NaN : Number(savedPersonalBest);
+        }
+        if (Number.isInteger(parsedPersonalBest) && parsedPersonalBest >= 0 && parsedPersonalBest <= questions.length) {
+          personalBestPersistenceFailed = false;
+          return parsedPersonalBest;
+        }
+        personalBestPersistenceFailed = false;
+        return 0;
+      } catch {
+        personalBestPersistenceFailed = true;
+        return null;
       }
-      if (Number.isInteger(parsedPersonalBest) && parsedPersonalBest >= 0 && parsedPersonalBest <= questions.length) {
-        personalBestScore = parsedPersonalBest;
-      }
-    } catch {
-      personalBestPersistenceFailed = true;
     }
+
+    personalBestScore = readStoredPersonalBest() ?? 0;
 
     function renderQuestion() {
       const item = questionOrder[currentQuestion];
@@ -667,6 +675,11 @@
     }
 
     function showResults() {
+      const storedPersonalBest = readStoredPersonalBest();
+      if (storedPersonalBest !== null) {
+        personalBestScore = Math.max(personalBestScore, storedPersonalBest);
+      }
+
       if (score > personalBestScore) {
         personalBestScore = score;
         try {

@@ -239,10 +239,29 @@ test("stores a new personal best and keeps it across restarts and reloads", () =
   assert.equal(quiz.document.querySelector("#personal-best-score").textContent, "5/10");
 
   const reloadedQuiz = createQuiz(storage);
+  finishQuizWithScore(reloadedQuiz.context, reloadedQuiz.document, 3);
+  assert.equal(reloadedQuiz.document.querySelector("#final-score").textContent, "3/10");
+  assert.equal(reloadedQuiz.document.querySelector("#personal-best-score").textContent, "5/10");
+  assert.equal(storage.get("space-quiz-personal-best"), "5");
+
+  reloadedQuiz.document.querySelector("#restart-button").click();
   finishQuizWithScore(reloadedQuiz.context, reloadedQuiz.document, 8);
   assert.equal(reloadedQuiz.document.querySelector("#final-score").textContent, "8/10");
   assert.equal(reloadedQuiz.document.querySelector("#personal-best-score").textContent, "8/10");
   assert.equal(storage.get("space-quiz-personal-best"), "8");
+});
+
+test("does not overwrite a higher score saved by another open quiz", () => {
+  const storage = new Map();
+  const staleQuiz = createQuiz(storage);
+  const otherQuiz = createQuiz(storage);
+
+  finishQuizWithScore(otherQuiz.context, otherQuiz.document, 10);
+  finishQuizWithScore(staleQuiz.context, staleQuiz.document, 5);
+
+  assert.equal(staleQuiz.document.querySelector("#final-score").textContent, "5/10");
+  assert.equal(staleQuiz.document.querySelector("#personal-best-score").textContent, "10/10");
+  assert.equal(storage.get("space-quiz-personal-best"), "10");
 });
 
 test("ignores invalid stored personal-best scores", () => {
