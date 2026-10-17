@@ -96,6 +96,7 @@ class TestDocument {
       "result-title",
       "result-copy",
       "final-score",
+      "personal-best-score",
       "restart-button",
       "review-section",
       "review-list",
@@ -122,16 +123,21 @@ class TestDocument {
   }
 }
 
-function createQuiz() {
+function createQuiz(storage = new Map(), storageOverrides = {}) {
   const htmlPath = path.join(__dirname, "..", "index.html");
   const html = readFileSync(htmlPath, "utf8");
   const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script, "index.html should contain the quiz script");
 
   const document = new TestDocument();
-  const context = vm.createContext({ document });
+  const localStorage = {
+    getItem: key => storage.has(key) ? storage.get(key) : null,
+    setItem: (key, value) => storage.set(key, String(value)),
+    ...storageOverrides
+  };
+  const context = vm.createContext({ document, localStorage });
   vm.runInContext(script, context, { filename: "index.html" });
-  return { context, document };
+  return { context, document, storage };
 }
 
 function finishQuiz(context, document, incorrectQuestionNumbers = new Set()) {
@@ -149,6 +155,14 @@ function finishQuiz(context, document, incorrectQuestionNumbers = new Set()) {
     answers.children[selected].click();
     continueButton.click();
   });
+}
+
+function finishQuizWithScore(context, document, score) {
+  const questionCount = vm.runInContext("questionOrder.length", context);
+  const incorrectQuestionNumbers = new Set(
+    Array.from({ length: questionCount }, (_, index) => index).filter(index => index >= score)
+  );
+  finishQuiz(context, document, incorrectQuestionNumbers);
 }
 
 test("shows each incorrect question, selected answer, and correct answer without changing the score", () => {
@@ -182,6 +196,7 @@ test("hides the incorrect-answer list and announces a perfect score", () => {
   assert.equal(document.querySelector("#review-section").hidden, true);
   assert.equal(document.querySelector("#review-list").children.length, 0);
   assert.match(document.querySelector("#results-announcement").textContent, /全問正解/);
+  assert.match(document.querySelector("#results-announcement").textContent, /自己ベストは10点/);
 });
 
 test("clears incorrect-answer history when restarting", () => {
@@ -202,4 +217,77 @@ test("clears incorrect-answer history when restarting", () => {
   assert.equal(document.querySelector("#review-section").hidden, true);
   assert.equal(document.querySelector("#review-list").children.length, 0);
   assert.equal(document.activeElement, document.querySelector("#restart-button"));
+});
+
+test("stores a new personal best and keeps it across restarts and reloads", () => {
+  const storage = new Map();
+  const quiz = createQuiz(storage);
+
+  finishQuizWithScore(quiz.context, quiz.document, 5);
+
+  assert.equal(quiz.document.querySelector("#final-score").textContent, "5/10");
+  assert.equal(quiz.document.querySelector("#personal-best-score").textContent, "5/10");
+  assert.equal(storage.get("space-quiz-personal-best"), "5");
+
+  quiz.document.querySelector("#restart-button").click();
+  finishQuizWithScore(quiz.context, quiz.document, 4);
+  assert.equal(quiz.document.querySelector("#personal-best-score").textContent, "5/10");
+  assert.equal(storage.get("space-quiz-personal-best"), "5");
+
+  quiz.document.querySelector("#restart-button").click();
+  finishQuizWithScore(quiz.context, quiz.document, 5);
+  assert.equal(quiz.document.querySelector("#personal-best-score").textContent, "5/10");
+
+  const reloadedQuiz = createQuiz(storage);
+  finishQuizWithScore(reloadedQuiz.context, reloadedQuiz.document, 3);
+  assert.equal(reloadedQuiz.document.querySelector("#final-score").textContent, "3/10");
+  assert.equal(reloadedQuiz.document.querySelector("#personal-best-score").textContent, "5/10");
+  assert.equal(storage.get("space-quiz-personal-best"), "5");
+
+  reloadedQuiz.document.querySelector("#restart-button").click();
+  finishQuizWithScore(reloadedQuiz.context, reloadedQuiz.document, 8);
+  assert.equal(reloadedQuiz.document.querySelector("#final-score").textContent, "8/10");
+  assert.equal(reloadedQuiz.document.querySelector("#personal-best-score").textContent, "8/10");
+  assert.equal(storage.get("space-quiz-personal-best"), "8");
+});
+
+test("does not overwrite a higher score saved by another open quiz", () => {
+  const storage = new Map();
+  const staleQuiz = createQuiz(storage);
+  const otherQuiz = createQuiz(storage);
+
+  finishQuizWithScore(otherQuiz.context, otherQuiz.document, 10);
+  finishQuizWithScore(staleQuiz.context, staleQuiz.document, 5);
+
+  assert.equal(staleQuiz.document.querySelector("#final-score").textContent, "5/10");
+  assert.equal(staleQuiz.document.querySelector("#personal-best-score").textContent, "10/10");
+  assert.equal(storage.get("space-quiz-personal-best"), "10");
+});
+
+test("ignores invalid stored personal-best scores", () => {
+  for (const value of ["", " ", "not-a-score", "-1", "10.5", "11"]) {
+    const storage = new Map([["space-quiz-personal-best", value]]);
+    const quiz = createQuiz(storage);
+
+    finishQuizWithScore(quiz.context, quiz.document, 0);
+
+    assert.equal(quiz.document.querySelector("#personal-best-score").textContent, "0/10");
+    assert.equal(storage.get("space-quiz-personal-best"), value);
+  }
+});
+
+test("shows the in-session personal best and announces when storage is unavailable", () => {
+  const quiz = createQuiz(new Map(), {
+    getItem() {
+      throw new Error("storage unavailable");
+    },
+    setItem() {
+      throw new Error("storage unavailable");
+    }
+  });
+
+  finishQuizWithScore(quiz.context, quiz.document, 10);
+
+  assert.equal(quiz.document.querySelector("#personal-best-score").textContent, "10/10");
+  assert.match(quiz.document.querySelector("#results-announcement").textContent, /自己ベストをこのブラウザーに保存できませんでした/);
 });
