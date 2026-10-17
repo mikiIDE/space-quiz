@@ -449,7 +449,7 @@
     }
     .review-item h3 { margin: 0 0 8px; font-size: 15px; }
     .review-item p { margin: 4px 0 0; }
-    .review-item strong { color: var(--muted); }
+    .review-item strong { color: var(--ink); }
     .results .primary { width: 100%; }
     .visually-hidden {
       position: absolute;
@@ -532,15 +532,15 @@
         <p class="topic">ミッション完了</p>
         <h1 id="result-title">宇宙が待っています！</h1>
         <p class="results-copy" id="result-copy"></p>
-        <p class="visually-hidden" id="results-announcement" role="status" aria-live="polite"></p>
         <div class="final-score"><strong id="final-score">0/10</strong><span>正解数</span></div>
+        <button class="primary" id="restart-button" type="button">もう一度挑戦 <span aria-hidden="true">↻</span></button>
         <section class="review" id="review-section" aria-labelledby="review-title" hidden>
           <h2 id="review-title">間違えた問題の振り返り</h2>
           <ol class="review-list" id="review-list"></ol>
         </section>
-        <button class="primary" id="restart-button" type="button">もう一度挑戦 <span aria-hidden="true">↻</span></button>
       </div>
     </section>
+    <p class="visually-hidden" id="results-announcement" role="status" aria-live="polite"></p>
   </main>
 
   <script>
@@ -557,6 +557,15 @@
       { question: "1990年に打ち上げられたNASAの宇宙望遠鏡は？", answers: ["ケプラー宇宙望遠鏡", "チャンドラX線望遠鏡", "スピッツァー宇宙望遠鏡", "ハッブル宇宙望遠鏡"], correct: 3, fact: "ハッブル宇宙望遠鏡は、何十年にもわたって宇宙の見方を大きく変えてきました。" }
     ];
 
+    function shuffleQuestions() {
+      const shuffled = [...questions];
+      for (let index = shuffled.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+      }
+      return shuffled;
+    }
+
     const quizScreen = document.querySelector("#quiz-screen");
     const resultsScreen = document.querySelector("#results-screen");
     const questionNumber = document.querySelector("#question-number");
@@ -570,13 +579,14 @@
     const reviewSection = document.querySelector("#review-section");
     const reviewList = document.querySelector("#review-list");
     const resultsAnnouncement = document.querySelector("#results-announcement");
+    let questionOrder = shuffleQuestions();
     let currentQuestion = 0;
     let score = 0;
     let answered = false;
     let incorrectAnswers = [];
 
     function renderQuestion() {
-      const item = questions[currentQuestion];
+      const item = questionOrder[currentQuestion];
       answered = false;
       questionNumber.textContent = String(currentQuestion + 1);
       questionHeading.textContent = item.question;
@@ -600,7 +610,7 @@
     function chooseAnswer(selected) {
       if (answered) return;
       answered = true;
-      const item = questions[currentQuestion];
+      const item = questionOrder[currentQuestion];
       const buttons = [...answersContainer.querySelectorAll(".answer")];
       buttons.forEach(button => { button.disabled = true; });
 
@@ -683,12 +693,18 @@
     });
 
     document.querySelector("#restart-button").addEventListener("click", () => {
+      const previousOrder = questionOrder;
+      questionOrder = shuffleQuestions();
+      if (questionOrder.every((item, index) => item === previousOrder[index])) {
+        [questionOrder[0], questionOrder[1]] = [questionOrder[1], questionOrder[0]];
+      }
       currentQuestion = 0;
       score = 0;
       incorrectAnswers = [];
       scoreDisplay.textContent = "0";
       reviewList.replaceChildren();
       reviewSection.hidden = true;
+      resultsAnnouncement.textContent = "";
       resultsScreen.hidden = true;
       quizScreen.hidden = false;
       renderQuestion();

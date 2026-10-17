@@ -136,7 +136,7 @@ function createQuiz() {
 
 function finishQuiz(context, document, incorrectQuestionNumbers = new Set()) {
   const questions = vm.runInContext(
-    "questions.map(({ correct, answers }) => ({ correct, answerCount: answers.length }))",
+    "questionOrder.map(({ correct, answers }) => ({ correct, answerCount: answers.length }))",
     context
   );
   const answers = document.querySelector("#answers");
@@ -153,7 +153,7 @@ function finishQuiz(context, document, incorrectQuestionNumbers = new Set()) {
 
 test("shows each incorrect question, selected answer, and correct answer without changing the score", () => {
   const { context, document } = createQuiz();
-  const questions = vm.runInContext("questions", context);
+  const questions = vm.runInContext("questionOrder", context);
   const incorrectQuestionNumbers = new Set([0, 3]);
 
   finishQuiz(context, document, incorrectQuestionNumbers);
@@ -193,6 +193,7 @@ test("clears incorrect-answer history when restarting", () => {
   assert.equal(document.querySelector("#score").textContent, "0");
   assert.equal(document.querySelector("#review-section").hidden, true);
   assert.equal(document.querySelector("#review-list").children.length, 0);
+  assert.equal(document.querySelector("#results-announcement").textContent, "");
   assert.equal(document.activeElement, document.querySelector("#question"));
 
   finishQuiz(context, document);
