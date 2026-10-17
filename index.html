@@ -528,6 +528,15 @@
       { question: "1990年に打ち上げられたNASAの宇宙望遠鏡は？", answers: ["ケプラー宇宙望遠鏡", "チャンドラX線望遠鏡", "スピッツァー宇宙望遠鏡", "ハッブル宇宙望遠鏡"], correct: 3, fact: "ハッブル宇宙望遠鏡は、何十年にもわたって宇宙の見方を大きく変えてきました。" }
     ];
 
+    function shuffleQuestions() {
+      const shuffled = [...questions];
+      for (let index = shuffled.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+      }
+      return shuffled;
+    }
+
     const quizScreen = document.querySelector("#quiz-screen");
     const resultsScreen = document.querySelector("#results-screen");
     const questionNumber = document.querySelector("#question-number");
@@ -538,12 +547,13 @@
     const progressFill = document.querySelector("#progress-fill");
     const feedback = document.querySelector("#feedback");
     const continueButton = document.querySelector("#continue-button");
+    let questionOrder = shuffleQuestions();
     let currentQuestion = 0;
     let score = 0;
     let answered = false;
 
     function renderQuestion() {
-      const item = questions[currentQuestion];
+      const item = questionOrder[currentQuestion];
       answered = false;
       questionNumber.textContent = String(currentQuestion + 1);
       questionHeading.textContent = item.question;
@@ -567,7 +577,7 @@
     function chooseAnswer(selected) {
       if (answered) return;
       answered = true;
-      const item = questions[currentQuestion];
+      const item = questionOrder[currentQuestion];
       const buttons = [...answersContainer.querySelectorAll(".answer")];
       buttons.forEach(button => { button.disabled = true; });
 
@@ -619,6 +629,11 @@
     });
 
     document.querySelector("#restart-button").addEventListener("click", () => {
+      const previousOrder = questionOrder;
+      questionOrder = shuffleQuestions();
+      if (questionOrder.every((item, index) => item === previousOrder[index])) {
+        [questionOrder[0], questionOrder[1]] = [questionOrder[1], questionOrder[0]];
+      }
       currentQuestion = 0;
       score = 0;
       scoreDisplay.textContent = "0";
