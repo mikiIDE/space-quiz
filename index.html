@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7ff">
+  <title>宇宙クイズ — 宇宙探検</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Segoe UI", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --page: #f5f7ff;
+      --surface: #fff;
+      --surface-soft: #f4f5fc;
+      --ink: #1b1d35;
+      --muted: #747890;
+      --line: #e7e8f1;
+      --accent: #6558e8;
+      --accent-dark: #5145ce;
+      --accent-wash: #efedff;
+      --panel-grid: rgb(101 88 232 / 4%);
+      --star-color: rgb(81 74 170 / 55%);
+      --star-accent: #c78a34;
+      --green: #148254;
+      --green-wash: #e6f8ef;
+      --red: #cf4258;
+      --red-wash: #fff0f1;
+      --shadow: 0 22px 65px rgb(44 48 92 / 10%), 0 2px 8px rgb(44 48 92 / 4%);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --page: #121321;
+        --surface: #1c1d30;
+        --surface-soft: #26273d;
+        --ink: #f3f2ff;
+        --muted: #a3a5bf;
+        --line: #34354d;
+        --accent: #a59aff;
+        --accent-dark: #9184f6;
+        --accent-wash: #302d50;
+        --panel-grid: rgb(165 154 255 / 5%);
+        --star-color: rgb(220 221 255 / 62%);
+        --star-accent: #ffd779;
+        --green: #63dca2;
+        --green-wash: #17392f;
+        --red: #ff8390;
+        --red-wash: #462933;
+        --shadow: 0 22px 65px rgb(0 0 0 / 25%), 0 2px 8px rgb(0 0 0 / 15%);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      position: relative;
+      isolation: isolate;
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: 32px 18px;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 12% 12%, rgb(166 155 255 / 15%), transparent 32%),
+        radial-gradient(ellipse at 88% 86%, rgb(101 207 222 / 12%), transparent 30%),
+        var(--page);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .starfield {
+      position: fixed;
+      z-index: 0;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 510px);
+      margin: auto;
+    }
+
+    .sparkle {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      color: var(--star-color);
+      font-size: var(--size);
+      line-height: 1;
+      text-shadow: 0 0 10px color-mix(in srgb, var(--star-color) 55%, transparent);
+      transform: translate(-50%, -50%);
+      animation: sparkle-twinkle 6s ease-in-out var(--delay) infinite;
+    }
+
+    .sparkle:nth-child(3n + 1) { color: var(--star-accent); }
+    .sparkle:nth-child(even)::before { content: "✧"; }
+
+    .sparkle:nth-child(1) { --x: 4%; --y: 21%; --size: 22px; --delay: -1s; }
+    .sparkle:nth-child(2) { --x: 13%; --y: 76%; --size: 17px; --delay: -4s; }
+    .sparkle:nth-child(3) { --x: 17%; --y: 5%; --size: 15px; --delay: -2s; }
+    .sparkle:nth-child(4) { --x: 96%; --y: 16%; --size: 20px; --delay: -5s; }
+    .sparkle:nth-child(5) { --x: 91%; --y: 39%; --size: 16px; --delay: -3s; }
+    .sparkle:nth-child(6) { --x: 97%; --y: 62%; --size: 22px; --delay: -1.5s; }
+    .sparkle:nth-child(7) { --x: 88%; --y: 83%; --size: 16px; --delay: -4.5s; }
+    .sparkle:nth-child(8) { --x: 95%; --y: 94%; --size: 19px; --delay: -2.5s; }
+
+    .star-dot {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--star-color);
+      box-shadow: 0 0 7px color-mix(in srgb, var(--star-color) 55%, transparent);
+    }
+
+    .star-dot:nth-child(9) { left: 3%; top: 8%; }
+    .star-dot:nth-child(10) { left: 7%; top: 65%; }
+    .star-dot:nth-child(11) { left: 9%; top: 47%; }
+    .star-dot:nth-child(12) { left: 15%; top: 31%; }
+    .star-dot:nth-child(13) { left: 5%; top: 91%; }
+    .star-dot:nth-child(14) { left: 86%; top: 25%; }
+    .star-dot:nth-child(15) { left: 93%; top: 52%; }
+    .star-dot:nth-child(16) { left: 89%; top: 71%; }
+    .star-dot:nth-child(17) { left: 98%; top: 87%; }
+    .star-dot:nth-child(18) { left: 84%; top: 5%; }
+
+    @keyframes sparkle-twinkle {
+      0%, 100% { opacity: .6; transform: translate(-50%, -50%) rotate(-8deg) scale(.9); }
+      50% { opacity: 1; transform: translate(-50%, -50%) rotate(8deg) scale(1.08); }
+    }
+
+    button { font: inherit; }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      margin-bottom: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 29px;
+      height: 29px;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+      border-radius: 10px;
+      background: var(--accent-wash);
+      color: var(--accent);
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .card {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+      border-radius: 20px;
+      background-color: var(--surface);
+      background-image:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent-wash) 46%, transparent), transparent 42%),
+        linear-gradient(var(--panel-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--panel-grid) 1px, transparent 1px);
+      background-size: 100% 210px, 32px 32px, 32px 32px;
+      background-repeat: no-repeat, repeat, repeat;
+      box-shadow: var(--shadow), inset 0 1px 0 color-mix(in srgb, var(--accent) 16%, transparent);
+    }
+
+    .card::before {
+      position: absolute;
+      z-index: 1;
+      inset: 9px;
+      border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+      border-radius: 13px;
+      background:
+        linear-gradient(var(--accent), var(--accent)) left top / 16px 2px,
+        linear-gradient(var(--accent), var(--accent)) left top / 2px 16px,
+        linear-gradient(var(--accent), var(--accent)) right top / 16px 2px,
+        linear-gradient(var(--accent), var(--accent)) right top / 2px 16px,
+        linear-gradient(var(--accent), var(--accent)) left bottom / 16px 2px,
+        linear-gradient(var(--accent), var(--accent)) left bottom / 2px 16px,
+        linear-gradient(var(--accent), var(--accent)) right bottom / 16px 2px,
+        linear-gradient(var(--accent), var(--accent)) right bottom / 2px 16px;
+      background-repeat: no-repeat;
+      content: "";
+      opacity: .65;
+      pointer-events: none;
+    }
+
+    .card::after {
+      position: absolute;
+      z-index: 1;
+      inset: 0 30px auto;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), #66d8cb, var(--accent), transparent);
+      content: "";
+      opacity: .72;
+      pointer-events: none;
+    }
+
+    .card-content, .results {
+      position: relative;
+      z-index: 2;
+    }
+
+    .card-content { padding: 30px; }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 13px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .question-count strong { color: var(--ink); }
+
+    .score-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-soft);
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .score-pill span { color: #e3a322; }
+
+    .progress-track {
+      height: 7px;
+      overflow: hidden;
+      margin-bottom: 27px;
+      border-radius: 99px;
+      background: var(--surface-soft);
+    }
+
+    .progress-fill {
+      width: 10%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #7669f2, #a88cf8);
+      transition: width 350ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    .topic {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, p { margin-top: 0; }
+
+    h1 {
+      margin-bottom: 10px;
+      font-size: clamp(22px, 5vw, 27px);
+      line-height: 1.28;
+      letter-spacing: -.035em;
+    }
+
+    .prompt {
+      margin-bottom: 23px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .answers {
+      display: grid;
+      gap: 10px;
+    }
+
+    .answer {
+      width: 100%;
+      min-height: 53px;
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--surface);
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 150ms ease, background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+    }
+
+    .answer:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+      box-shadow: 0 4px 14px rgb(101 88 232 / 9%);
+    }
+
+    .answer:focus-visible, .primary:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+      outline-offset: 3px;
+    }
+
+    .answer:disabled { cursor: default; }
+
+    .answer-key {
+      display: grid;
+      width: 27px;
+      height: 27px;
+      flex: 0 0 27px;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .answer.correct {
+      border-color: color-mix(in srgb, var(--green) 58%, var(--line));
+      background: var(--green-wash);
+      color: var(--green);
+    }
+
+    .answer.correct .answer-key { background: var(--green); color: white; }
+
+    .answer.wrong {
+      border-color: color-mix(in srgb, var(--red) 60%, var(--line));
+      background: var(--red-wash);
+      color: var(--red);
+      animation: shake 360ms ease-in-out;
+    }
+
+    .answer.wrong .answer-key { background: var(--red); color: white; }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      22% { transform: translateX(-5px); }
+      48% { transform: translateX(4px); }
+      72% { transform: translateX(-3px); }
+    }
+
+    .feedback {
+      min-height: 28px;
+      margin: 14px 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .feedback.good { color: var(--green); font-weight: 650; }
+    .feedback.bad { color: var(--red); font-weight: 650; }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      min-height: 48px;
+    }
+
+    .primary {
+      min-width: 142px;
+      padding: 12px 19px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 150ms ease, transform 150ms ease;
+    }
+
+    .primary:hover { transform: translateY(-1px); background: var(--accent-dark); }
+    .primary:active { transform: translateY(0); }
+
+    .hint {
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .results {
+      padding: 44px 32px 38px;
+      text-align: center;
+    }
+
+    .reaction {
+      display: grid;
+      width: 94px;
+      height: 94px;
+      margin: 0 auto 19px;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+      border-radius: 30px;
+      background: var(--accent-wash);
+      font-size: 48px;
+      animation: pop-in 500ms cubic-bezier(.18,.85,.3,1.3) both;
+    }
+
+    @keyframes pop-in {
+      from { transform: scale(.65) rotate(-9deg); opacity: 0; }
+      to { transform: scale(1) rotate(0); opacity: 1; }
+    }
+
+    .results h1 { margin-bottom: 8px; }
+    .results-copy { margin-bottom: 23px; color: var(--muted); }
+
+    .final-score {
+      margin: 0 auto 25px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--surface-soft);
+    }
+
+    .final-score strong {
+      display: block;
+      color: var(--accent);
+      font-size: 32px;
+      line-height: 1.15;
+      letter-spacing: -.04em;
+    }
+
+    .final-score span { color: var(--muted); font-size: 13px; }
+    .results .primary { width: 100%; }
+    [hidden] { display: none !important; }
+
+    @media (max-width: 480px) {
+      body { padding: 24px 14px; }
+      .card-content { padding: 23px 20px; }
+      .results { padding: 36px 23px 28px; }
+      .brand { margin-bottom: 15px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+
+      .sparkle { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="starfield" aria-hidden="true">
+    <span class="sparkle">✦</span>
+    <span class="sparkle">✦</span>
+    <span class="sparkle">✦</span>
+    <span class="sparkle">✦</span>
+    <span class="sparkle">✦</span>
+    <span class="sparkle">✦</span>
+    <span class="sparkle">✦</span>
+    <span class="sparkle">✦</span>
+    <span class="star-dot"></span>
+    <span class="star-dot"></span>
+    <span class="star-dot"></span>
+    <span class="star-dot"></span>
+    <span class="star-dot"></span>
+    <span class="star-dot"></span>
+    <span class="star-dot"></span>
+    <span class="star-dot"></span>
+    <span class="star-dot"></span>
+    <span class="star-dot"></span>
+  </div>
+  <main class="app">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span> 宇宙クイズ</div>
+
+    <section class="card" aria-label="宇宙探検クイズ">
+      <div class="card-content" id="quiz-screen">
+        <div class="topline">
+          <span class="question-count">第<strong id="question-number">1</strong>問 ／ 全10問</span>
+          <span class="score-pill" aria-label="現在の得点"><span aria-hidden="true">★</span> <span id="score">0</span>点</span>
+        </div>
+        <div class="progress-track" role="progressbar" aria-label="クイズの進捗" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <p class="topic">宇宙のふしぎ · クイッククイズ</p>
+        <h1 id="question" tabindex="-1"></h1>
+        <p class="prompt">正解だと思うものを選んで、ミッションを続けましょう。</p>
+        <div class="answers" id="answers" role="group" aria-label="回答の選択肢"></div>
+        <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+        <div class="actions">
+          <button class="primary" id="continue-button" type="button" hidden>次の問題へ <span aria-hidden="true">→</span></button>
+        </div>
+        <p class="hint">好奇心が、宇宙への第一歩。</p>
+      </div>
+
+      <div class="results" id="results-screen" hidden aria-live="polite">
+        <div class="reaction" id="reaction" aria-hidden="true"></div>
+        <p class="topic">ミッション完了</p>
+        <h1 id="result-title">宇宙が待っています！</h1>
+        <p class="results-copy" id="result-copy"></p>
+        <div class="final-score"><strong id="final-score">0/10</strong><span>正解数</span></div>
+        <button class="primary" id="restart-button" type="button">もう一度挑戦 <span aria-hidden="true">↻</span></button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const questions = [
+      { question: "「赤い惑星」と呼ばれているのはどの惑星？", answers: ["金星", "火星", "木星", "水星"], correct: 1, fact: "火星の表面には鉄分を多く含む砂ぼこりがあり、さびのような赤色に見えます。" },
+      { question: "私たちの太陽系がある銀河の名前は？", answers: ["アンドロメダ銀河", "子持ち銀河", "天の川銀河", "ソンブレロ銀河"], correct: 2, fact: "太陽系は、天の川銀河にある渦巻腕のひとつに位置しています。" },
+      { question: "人類が初めて宇宙に到達させた人工物は？", answers: ["スプートニク1号", "V2ロケット", "アポロ11号", "エクスプローラー1号"], correct: 1, fact: "1944年、ドイツのV2ロケットが高度約100kmのカーマン・ラインを越えました。" },
+      { question: "太陽系で最も大きな惑星は？", answers: ["土星", "海王星", "地球", "木星"], correct: 3, fact: "木星はとても大きく、地球が1,300個以上も入るほどです。" },
+      { question: "宇宙飛行士が宇宙船の外に出るときに着るものは？", answers: ["宇宙服", "フライトジャケット", "防寒ブランケット", "潜水服"], correct: 0, fact: "宇宙服は、真空や極端な温度から身を守る「小さな宇宙船」のようなものです。" },
+      { question: "美しい環を持つことで特によく知られている惑星は？", answers: ["天王星", "土星", "海王星", "木星"], correct: 1, fact: "土星の環は、無数の氷や岩のかけらでできています。" },
+      { question: "太陽の光が地球に届くまで、およそどのくらい？", answers: ["約8秒", "約8分", "約1時間", "約1日"], correct: 1, fact: "太陽の光は約1億5,000万kmを進み、約8分20秒で地球に届きます。" },
+      { question: "人類を初めて月面に着陸させた宇宙船は？", answers: ["アポロ8号", "ジェミニ7号", "アポロ11号", "ルナ9号"], correct: 2, fact: "アポロ11号の月着陸船は、1969年7月20日に月面へ着陸しました。" },
+      { question: "自転軸が横倒しになっていることで知られる惑星は？", answers: ["天王星", "火星", "金星", "水星"], correct: 0, fact: "天王星の自転軸は約98度傾いています。昔、巨大な天体が衝突したためと考えられています。" },
+      { question: "1990年に打ち上げられたNASAの宇宙望遠鏡は？", answers: ["ケプラー宇宙望遠鏡", "チャンドラX線望遠鏡", "スピッツァー宇宙望遠鏡", "ハッブル宇宙望遠鏡"], correct: 3, fact: "ハッブル宇宙望遠鏡は、何十年にもわたって宇宙の見方を大きく変えてきました。" }
+    ];
+
+    const quizScreen = document.querySelector("#quiz-screen");
+    const resultsScreen = document.querySelector("#results-screen");
+    const questionNumber = document.querySelector("#question-number");
+    const questionHeading = document.querySelector("#question");
+    const answersContainer = document.querySelector("#answers");
+    const scoreDisplay = document.querySelector("#score");
+    const progress = document.querySelector(".progress-track");
+    const progressFill = document.querySelector("#progress-fill");
+    const feedback = document.querySelector("#feedback");
+    const continueButton = document.querySelector("#continue-button");
+    let currentQuestion = 0;
+    let score = 0;
+    let answered = false;
+
+    function renderQuestion() {
+      const item = questions[currentQuestion];
+      answered = false;
+      questionNumber.textContent = String(currentQuestion + 1);
+      questionHeading.textContent = item.question;
+      progress.setAttribute("aria-valuenow", String(currentQuestion));
+      progressFill.style.width = `${currentQuestion / questions.length * 100}%`;
+      feedback.textContent = "";
+      feedback.className = "feedback";
+      continueButton.hidden = true;
+      answersContainer.replaceChildren();
+
+      item.answers.forEach((answer, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "answer";
+        button.innerHTML = `<span class="answer-key" aria-hidden="true">${String.fromCharCode(65 + index)}</span><span>${answer}</span>`;
+        button.addEventListener("click", () => chooseAnswer(index));
+        answersContainer.append(button);
+      });
+    }
+
+    function chooseAnswer(selected) {
+      if (answered) return;
+      answered = true;
+      const item = questions[currentQuestion];
+      const buttons = [...answersContainer.querySelectorAll(".answer")];
+      buttons.forEach(button => { button.disabled = true; });
+
+      if (selected === item.correct) {
+        score += 1;
+        scoreDisplay.textContent = String(score);
+        buttons[selected].classList.add("correct");
+        feedback.textContent = `正解！ ${item.fact}`;
+        feedback.classList.add("good");
+      } else {
+        buttons[selected].classList.add("wrong");
+        buttons[item.correct].classList.add("correct");
+        feedback.textContent = `残念！ 正解はこちら。${item.fact}`;
+        feedback.classList.add("bad");
+      }
+
+      progress.setAttribute("aria-valuenow", String(currentQuestion + 1));
+      progressFill.style.width = `${(currentQuestion + 1) / questions.length * 100}%`;
+      continueButton.innerHTML = currentQuestion === questions.length - 1
+        ? "結果を見る <span aria-hidden=\"true\">→</span>"
+        : "次の問題へ <span aria-hidden=\"true\">→</span>";
+      continueButton.hidden = false;
+      continueButton.focus();
+    }
+
+    function showResults() {
+      const percentage = score / questions.length;
+      const reaction = percentage === 1 ? "🏆" : percentage >= 0.7 ? "🚀" : percentage >= 0.4 ? "🌟" : "🪐";
+      const title = percentage === 1 ? "宇宙レベルの満点！" : percentage >= 0.7 ? "すばらしい探検！" : percentage >= 0.4 ? "いいスタート！" : "空を見上げて、また挑戦！";
+      document.querySelector("#reaction").textContent = reaction;
+      document.querySelector("#result-title").textContent = title;
+      document.querySelector("#result-copy").textContent = score === 10
+        ? "全問正解！宇宙のことなら何でも知っていますね。"
+        : `全10問中${score}問正解。宇宙探検は、ひとつの疑問から始まります。`;
+      document.querySelector("#final-score").textContent = `${score}/10`;
+      quizScreen.hidden = true;
+      resultsScreen.hidden = false;
+      document.querySelector("#restart-button").focus();
+    }
+
+    continueButton.addEventListener("click", () => {
+      if (currentQuestion === questions.length - 1) {
+        showResults();
+      } else {
+        currentQuestion += 1;
+        renderQuestion();
+        questionHeading.focus();
+      }
+    });
+
+    document.querySelector("#restart-button").addEventListener("click", () => {
+      currentQuestion = 0;
+      score = 0;
+      scoreDisplay.textContent = "0";
+      resultsScreen.hidden = true;
+      quizScreen.hidden = false;
+      renderQuestion();
+      questionHeading.focus();
+    });
+
+    renderQuestion();
+  </script>
+</body>
+</html>
